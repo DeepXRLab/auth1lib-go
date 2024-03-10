@@ -23,6 +23,9 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type Auth1Client interface {
 	GetSiteJwtSecret(ctx context.Context, in *SiteJwtSecretRequest, opts ...grpc.CallOption) (*SiteJwtSecretReply, error)
+	LoginUidpw(ctx context.Context, in *LoginUidpwRequest, opts ...grpc.CallOption) (*LoginResultReply, error)
+	RefreshUser(ctx context.Context, in *RtokenRequest, opts ...grpc.CallOption) (*LoginResultReply, error)
+	LogoutUser(ctx context.Context, in *RtokenRequest, opts ...grpc.CallOption) (*LogoutReply, error)
 }
 
 type auth1Client struct {
@@ -42,11 +45,41 @@ func (c *auth1Client) GetSiteJwtSecret(ctx context.Context, in *SiteJwtSecretReq
 	return out, nil
 }
 
+func (c *auth1Client) LoginUidpw(ctx context.Context, in *LoginUidpwRequest, opts ...grpc.CallOption) (*LoginResultReply, error) {
+	out := new(LoginResultReply)
+	err := c.cc.Invoke(ctx, "/rpcapi.Auth1/LoginUidpw", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *auth1Client) RefreshUser(ctx context.Context, in *RtokenRequest, opts ...grpc.CallOption) (*LoginResultReply, error) {
+	out := new(LoginResultReply)
+	err := c.cc.Invoke(ctx, "/rpcapi.Auth1/RefreshUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *auth1Client) LogoutUser(ctx context.Context, in *RtokenRequest, opts ...grpc.CallOption) (*LogoutReply, error) {
+	out := new(LogoutReply)
+	err := c.cc.Invoke(ctx, "/rpcapi.Auth1/LogoutUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Auth1Server is the server API for Auth1 service.
 // All implementations must embed UnimplementedAuth1Server
 // for forward compatibility
 type Auth1Server interface {
 	GetSiteJwtSecret(context.Context, *SiteJwtSecretRequest) (*SiteJwtSecretReply, error)
+	LoginUidpw(context.Context, *LoginUidpwRequest) (*LoginResultReply, error)
+	RefreshUser(context.Context, *RtokenRequest) (*LoginResultReply, error)
+	LogoutUser(context.Context, *RtokenRequest) (*LogoutReply, error)
 	mustEmbedUnimplementedAuth1Server()
 }
 
@@ -56,6 +89,15 @@ type UnimplementedAuth1Server struct {
 
 func (UnimplementedAuth1Server) GetSiteJwtSecret(context.Context, *SiteJwtSecretRequest) (*SiteJwtSecretReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSiteJwtSecret not implemented")
+}
+func (UnimplementedAuth1Server) LoginUidpw(context.Context, *LoginUidpwRequest) (*LoginResultReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoginUidpw not implemented")
+}
+func (UnimplementedAuth1Server) RefreshUser(context.Context, *RtokenRequest) (*LoginResultReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RefreshUser not implemented")
+}
+func (UnimplementedAuth1Server) LogoutUser(context.Context, *RtokenRequest) (*LogoutReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LogoutUser not implemented")
 }
 func (UnimplementedAuth1Server) mustEmbedUnimplementedAuth1Server() {}
 
@@ -88,6 +130,60 @@ func _Auth1_GetSiteJwtSecret_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Auth1_LoginUidpw_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginUidpwRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(Auth1Server).LoginUidpw(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcapi.Auth1/LoginUidpw",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(Auth1Server).LoginUidpw(ctx, req.(*LoginUidpwRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Auth1_RefreshUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RtokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(Auth1Server).RefreshUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcapi.Auth1/RefreshUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(Auth1Server).RefreshUser(ctx, req.(*RtokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Auth1_LogoutUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RtokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(Auth1Server).LogoutUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcapi.Auth1/LogoutUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(Auth1Server).LogoutUser(ctx, req.(*RtokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Auth1_ServiceDesc is the grpc.ServiceDesc for Auth1 service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -98,6 +194,18 @@ var Auth1_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSiteJwtSecret",
 			Handler:    _Auth1_GetSiteJwtSecret_Handler,
+		},
+		{
+			MethodName: "LoginUidpw",
+			Handler:    _Auth1_LoginUidpw_Handler,
+		},
+		{
+			MethodName: "RefreshUser",
+			Handler:    _Auth1_RefreshUser_Handler,
+		},
+		{
+			MethodName: "LogoutUser",
+			Handler:    _Auth1_LogoutUser_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

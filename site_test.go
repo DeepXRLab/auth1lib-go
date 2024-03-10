@@ -57,7 +57,7 @@ func TestGetJwtSecret(t *testing.T) {
 	assert.Equal(t, status.Code(err), codes.NotFound)
 
 	// invalid api key
-	cli.SetApiKey("xxx")
+	cli.SetApiKey("xxx", "yyy")
 	_, err = cli.GetSiteJwtSecret("yyy")
 	assert.NotNil(t, err)
 	assert.Equal(t, status.Code(err), codes.Unauthenticated)

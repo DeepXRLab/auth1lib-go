@@ -23,12 +23,16 @@ type Auth1Wrapper struct {
 	md   metadata.MD
 	acli pb.Auth1Client
 
-	defaultTenantKey string
-	defaultSiteKey   string
-	defaultApiKey    string
+	targetTenantKey string
+	targetSiteKey   string
 
 	timeoutInSecs time.Duration
 	verbose       bool
+}
+
+type LoginResult struct {
+	AccessToken  string
+	RefreshToken string
 }
 
 type auth1WrapperOption func(w *Auth1Wrapper)
@@ -56,10 +60,9 @@ func NewClient(auth1uri string, opts ...auth1WrapperOption) (*Auth1Wrapper, erro
 	}
 
 	ret := &Auth1Wrapper{
-		timeoutInSecs:    time.Second * 30, // default
-		defaultTenantKey: tenantAndSite[0],
-		defaultSiteKey:   tenantAndSite[1],
-		defaultApiKey:    parsed.User.Username(),
+		timeoutInSecs:   time.Second * 30, // default
+		targetTenantKey: tenantAndSite[0],
+		targetSiteKey:   tenantAndSite[1],
 	}
 
 	var creds credentials.TransportCredentials
@@ -71,8 +74,10 @@ func NewClient(auth1uri string, opts ...auth1WrapperOption) (*Auth1Wrapper, erro
 		return nil, errors.New(fmt.Sprintf("Unsupported scheme: %s", parsed.Scheme))
 	}
 
-	if ret.defaultApiKey != "" {
-		ret.SetApiKey(ret.defaultApiKey)
+	apikey := parsed.User.Username()
+	secret, hasPw := parsed.User.Password()
+	if apikey != "" && hasPw {
+		ret.SetApiKey(apikey, secret)
 	}
 
 	for _, opt := range opts {
@@ -110,22 +115,56 @@ func (wrapper *Auth1Wrapper) Close() error {
 	return nil
 }
 
-func (wrapper *Auth1Wrapper) SetApiKey(apikey string) {
-	wrapper.md = metadata.Pairs("apikey", apikey)
+func (wrapper *Auth1Wrapper) SetApiKey(apikey, secret string) {
+	wrapper.md = metadata.Pairs("apikey", apikey, "secret", secret)
 }
 
-func (wrapper *Auth1Wrapper) GetSiteJwtSecret(siteKey string) ([]byte, error) {
-	if siteKey == "" {
-		siteKey = wrapper.defaultSiteKey
-	}
-
+func (wrapper *Auth1Wrapper) GetSiteJwtSecret() ([]byte, error) {
 	ctx, cancel := context.WithTimeout(metadata.NewOutgoingContext(context.Background(), wrapper.md), wrapper.timeoutInSecs)
 	defer cancel()
 
-	r, err := wrapper.acli.GetSiteJwtSecret(ctx, &pb.SiteJwtSecretRequest{SiteKey: siteKey})
+	r, err := wrapper.acli.GetSiteJwtSecret(ctx, &pb.SiteJwtSecretRequest{SiteKey: wrapper.targetSiteKey})
 	if err != nil {
 		return nil, err
 	}
 
 	return r.GetJwtSecret(), nil
+}
+
+func (wrapper *Auth1Wrapper) LoginUidpw(uid string, pw []byte) (*LoginResult, error) {
+	ctx, cancel := context.WithTimeout(metadata.NewOutgoingContext(context.Background(), wrapper.md), wrapper.timeoutInSecs)
+	defer cancel()
+
+	r, err := wrapper.acli.LoginUidpw(ctx, &pb.LoginUidpwRequest{SiteKey: wrapper.targetSiteKey, Uid: uid, Pw: pw})
+	if err != nil {
+		return nil, err
+	}
+
+	return &LoginResult{
+		AccessToken:  r.GetAtk(),
+		RefreshToken: r.GetRtk(),
+	}, nil
+}
+
+func (wrapper *Auth1Wrapper) Logout(rtk string) error {
+	ctx, cancel := context.WithTimeout(metadata.NewOutgoingContext(context.Background(), wrapper.md), wrapper.timeoutInSecs)
+	defer cancel()
+
+	_, err := wrapper.acli.LogoutUser(ctx, &pb.RtokenRequest{SiteKey: wrapper.targetSiteKey, Rtk: rtk})
+	return err
+}
+
+func (wrapper *Auth1Wrapper) RefreshAuth(rtk string) (*LoginResult, error) {
+	ctx, cancel := context.WithTimeout(metadata.NewOutgoingContext(context.Background(), wrapper.md), wrapper.timeoutInSecs)
+	defer cancel()
+
+	r, err := wrapper.acli.RefreshUser(ctx, &pb.RtokenRequest{SiteKey: wrapper.targetSiteKey, Rtk: rtk})
+	if err != nil {
+		return nil, err
+	}
+
+	return &LoginResult{
+		AccessToken:  r.GetAtk(),
+		RefreshToken: r.GetRtk(),
+	}, nil
 }
