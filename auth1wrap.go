@@ -168,3 +168,10 @@ func (wrapper *Auth1Wrapper) RefreshAuth(rtk string) (*LoginResult, error) {
 		RefreshToken: r.GetRtk(),
 	}, nil
 }
+
+func (wrapper *Auth1Wrapper) GetUserInfo(userKey string) (*pb.UserInfoReply, error) {
+	ctx, cancel := context.WithTimeout(metadata.NewOutgoingContext(context.Background(), wrapper.md), wrapper.timeoutInSecs)
+	defer cancel()
+
+	return wrapper.acli.GetUserInfo(ctx, &pb.UserInfoRequest{UserKey: userKey})
+}
