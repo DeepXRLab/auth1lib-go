@@ -3,7 +3,6 @@ package auth1lib
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -52,11 +51,11 @@ func WithRequestTimeout(seconds int) auth1WrapperOption {
 func NewClient(auth1uri string, opts ...auth1WrapperOption) (*Auth1Wrapper, error) {
 	parsed, err := url.ParseRequestURI(auth1uri)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Invalid Auth1 URI(%s): %v", auth1uri, err))
+		return nil, fmt.Errorf("invalid auth1 uri(%s): %v", auth1uri, err)
 	}
 	tenantAndSite := strings.Split(strings.TrimSuffix(strings.TrimPrefix(parsed.Path, "/"), "/"), "/")
 	if len(tenantAndSite) != 2 {
-		return nil, errors.New(fmt.Sprintf("Invalid Auth1 URI Path(/tenant/site): %s", parsed.Path))
+		return nil, fmt.Errorf("invalid auth1 uri path(/tenant/site): %s", parsed.Path)
 	}
 
 	ret := &Auth1Wrapper{
@@ -71,7 +70,7 @@ func NewClient(auth1uri string, opts ...auth1WrapperOption) (*Auth1Wrapper, erro
 	} else if parsed.Scheme == "auth1" {
 		creds = insecure.NewCredentials()
 	} else {
-		return nil, errors.New(fmt.Sprintf("Unsupported scheme: %s", parsed.Scheme))
+		return nil, fmt.Errorf("unsupported scheme: %s", parsed.Scheme)
 	}
 
 	apikey := parsed.User.Username()
@@ -117,6 +116,14 @@ func (wrapper *Auth1Wrapper) Close() error {
 
 func (wrapper *Auth1Wrapper) SetApiKey(apikey, secret string) {
 	wrapper.md = metadata.Pairs("apikey", apikey, "secret", secret)
+}
+
+func (wrapper *Auth1Wrapper) GetTenantKey() string {
+	return wrapper.targetTenantKey
+}
+
+func (wrapper *Auth1Wrapper) GetSiteKey() string {
+	return wrapper.targetSiteKey
 }
 
 func (wrapper *Auth1Wrapper) GetSiteJwtSecret() ([]byte, error) {
@@ -174,4 +181,15 @@ func (wrapper *Auth1Wrapper) GetUserInfo(userKey string) (*pb.UserInfoReply, err
 	defer cancel()
 
 	return wrapper.acli.GetUserInfo(ctx, &pb.UserInfoRequest{UserKey: userKey})
+}
+
+func (wrapper *Auth1Wrapper) AddSiteUser(siteKey, userId string, passwd []byte, memo string) (string, error) {
+	ctx, cancel := context.WithTimeout(metadata.NewOutgoingContext(context.Background(), wrapper.md), wrapper.timeoutInSecs)
+	defer cancel()
+
+	res, err := wrapper.acli.AddSiteUser(ctx, &pb.AddSiteUserRequest{SiteKey: siteKey, Uid: userId, Pw: passwd, Memo: memo})
+	if err != nil {
+		return "", err
+	}
+	return res.GetUserKey(), nil
 }

@@ -36,7 +36,7 @@ func TestServerUnavailable(t *testing.T) {
 	cli, err := auth1lib.NewClient("auth1://xxx:1234/a/b", auth1lib.WithVerbose())
 	assert.Nil(t, err, "NewClient failed")
 
-	_, err = cli.GetSiteJwtSecret("yyy")
+	_, err = cli.GetSiteJwtSecret()
 	assert.NotNil(t, err)
 	assert.Equal(t, status.Code(err), codes.Unavailable)
 
@@ -47,18 +47,18 @@ func TestGetJwtSecret(t *testing.T) {
 	cli, err := auth1lib.NewClient("auth1://2ZTLhg28pF6a2eSbAeHn2UUHyFy2ZTLhaqCgsT0yvo4G63nR6G9QqK@localhost:50051/hello/world")
 	assert.Nil(t, err, "NewClient failed")
 
-	secret, err := cli.GetSiteJwtSecret("")
+	secret, err := cli.GetSiteJwtSecret()
 	assert.Nil(t, err, "GetSiteJwtSecret failed")
 	assert.GreaterOrEqual(t, len(secret), 20)
 
 	// invalid site key
-	secret, err = cli.GetSiteJwtSecret("xxxx")
+	secret, err = cli.GetSiteJwtSecret()
 	assert.NotNil(t, err)
 	assert.Equal(t, status.Code(err), codes.NotFound)
 
 	// invalid api key
 	cli.SetApiKey("xxx", "yyy")
-	_, err = cli.GetSiteJwtSecret("yyy")
+	_, err = cli.GetSiteJwtSecret()
 	assert.NotNil(t, err)
 	assert.Equal(t, status.Code(err), codes.Unauthenticated)
 
