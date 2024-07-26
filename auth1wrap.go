@@ -153,6 +153,21 @@ func (wrapper *Auth1Wrapper) LoginUidpw(uid string, pw []byte) (*LoginResult, er
 	}, nil
 }
 
+func (wrapper *Auth1Wrapper) LoginOneTap(token string) (*LoginResult, error) {
+	ctx, cancel := context.WithTimeout(metadata.NewOutgoingContext(context.Background(), wrapper.md), wrapper.timeoutInSecs)
+	defer cancel()
+
+	r, err := wrapper.acli.LoginOneTap(ctx, &pb.LoginOneTapRequest{SiteKey: wrapper.targetSiteKey, Token: token})
+	if err != nil {
+		return nil, err
+	}
+
+	return &LoginResult{
+		AccessToken:  r.GetAtk(),
+		RefreshToken: r.GetRtk(),
+	}, nil
+}
+
 func (wrapper *Auth1Wrapper) Logout(rtk string) error {
 	ctx, cancel := context.WithTimeout(metadata.NewOutgoingContext(context.Background(), wrapper.md), wrapper.timeoutInSecs)
 	defer cancel()
