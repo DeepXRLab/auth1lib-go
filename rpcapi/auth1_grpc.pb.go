@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type Auth1Client interface {
 	GetSiteJwtSecret(ctx context.Context, in *SiteJwtSecretRequest, opts ...grpc.CallOption) (*SiteJwtSecretReply, error)
 	LoginUidpw(ctx context.Context, in *LoginUidpwRequest, opts ...grpc.CallOption) (*LoginResultReply, error)
+	LoginNoAuth(ctx context.Context, in *LoginNoAuthRequest, opts ...grpc.CallOption) (*LoginResultReply, error)
 	LoginOneTap(ctx context.Context, in *LoginOneTapRequest, opts ...grpc.CallOption) (*LoginResultReply, error)
 	RefreshUser(ctx context.Context, in *RtokenRequest, opts ...grpc.CallOption) (*LoginResultReply, error)
 	LogoutUser(ctx context.Context, in *RtokenRequest, opts ...grpc.CallOption) (*LogoutReply, error)
@@ -51,6 +52,15 @@ func (c *auth1Client) GetSiteJwtSecret(ctx context.Context, in *SiteJwtSecretReq
 func (c *auth1Client) LoginUidpw(ctx context.Context, in *LoginUidpwRequest, opts ...grpc.CallOption) (*LoginResultReply, error) {
 	out := new(LoginResultReply)
 	err := c.cc.Invoke(ctx, "/rpcapi.Auth1/LoginUidpw", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *auth1Client) LoginNoAuth(ctx context.Context, in *LoginNoAuthRequest, opts ...grpc.CallOption) (*LoginResultReply, error) {
+	out := new(LoginResultReply)
+	err := c.cc.Invoke(ctx, "/rpcapi.Auth1/LoginNoAuth", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +118,7 @@ func (c *auth1Client) AddSiteUser(ctx context.Context, in *AddSiteUserRequest, o
 type Auth1Server interface {
 	GetSiteJwtSecret(context.Context, *SiteJwtSecretRequest) (*SiteJwtSecretReply, error)
 	LoginUidpw(context.Context, *LoginUidpwRequest) (*LoginResultReply, error)
+	LoginNoAuth(context.Context, *LoginNoAuthRequest) (*LoginResultReply, error)
 	LoginOneTap(context.Context, *LoginOneTapRequest) (*LoginResultReply, error)
 	RefreshUser(context.Context, *RtokenRequest) (*LoginResultReply, error)
 	LogoutUser(context.Context, *RtokenRequest) (*LogoutReply, error)
@@ -125,6 +136,9 @@ func (UnimplementedAuth1Server) GetSiteJwtSecret(context.Context, *SiteJwtSecret
 }
 func (UnimplementedAuth1Server) LoginUidpw(context.Context, *LoginUidpwRequest) (*LoginResultReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LoginUidpw not implemented")
+}
+func (UnimplementedAuth1Server) LoginNoAuth(context.Context, *LoginNoAuthRequest) (*LoginResultReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoginNoAuth not implemented")
 }
 func (UnimplementedAuth1Server) LoginOneTap(context.Context, *LoginOneTapRequest) (*LoginResultReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LoginOneTap not implemented")
@@ -186,6 +200,24 @@ func _Auth1_LoginUidpw_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(Auth1Server).LoginUidpw(ctx, req.(*LoginUidpwRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Auth1_LoginNoAuth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginNoAuthRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(Auth1Server).LoginNoAuth(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/rpcapi.Auth1/LoginNoAuth",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(Auth1Server).LoginNoAuth(ctx, req.(*LoginNoAuthRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -294,6 +326,10 @@ var Auth1_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "LoginUidpw",
 			Handler:    _Auth1_LoginUidpw_Handler,
+		},
+		{
+			MethodName: "LoginNoAuth",
+			Handler:    _Auth1_LoginNoAuth_Handler,
 		},
 		{
 			MethodName: "LoginOneTap",

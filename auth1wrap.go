@@ -153,6 +153,21 @@ func (wrapper *Auth1Wrapper) LoginUidpw(uid string, pw []byte) (*LoginResult, er
 	}, nil
 }
 
+func (wrapper *Auth1Wrapper) LoginNoAuth(uid string) (*LoginResult, error) {
+	ctx, cancel := context.WithTimeout(metadata.NewOutgoingContext(context.Background(), wrapper.md), wrapper.timeoutInSecs)
+	defer cancel()
+
+	r, err := wrapper.acli.LoginNoAuth(ctx, &pb.LoginNoAuthRequest{SiteKey: wrapper.targetSiteKey, Uid: uid})
+	if err != nil {
+		return nil, err
+	}
+
+	return &LoginResult{
+		AccessToken:  r.GetAtk(),
+		RefreshToken: r.GetRtk(),
+	}, nil
+}
+
 func (wrapper *Auth1Wrapper) LoginOneTap(token string) (*LoginResult, error) {
 	ctx, cancel := context.WithTimeout(metadata.NewOutgoingContext(context.Background(), wrapper.md), wrapper.timeoutInSecs)
 	defer cancel()
@@ -198,11 +213,11 @@ func (wrapper *Auth1Wrapper) GetUserInfo(userKey string) (*pb.UserInfoReply, err
 	return wrapper.acli.GetUserInfo(ctx, &pb.UserInfoRequest{UserKey: userKey})
 }
 
-func (wrapper *Auth1Wrapper) AddSiteUser(siteKey, userId string, passwd []byte, memo string) (string, error) {
+func (wrapper *Auth1Wrapper) AddSiteUser(siteKey, userId string, passwd []byte, memo string, noauth bool) (string, error) {
 	ctx, cancel := context.WithTimeout(metadata.NewOutgoingContext(context.Background(), wrapper.md), wrapper.timeoutInSecs)
 	defer cancel()
 
-	res, err := wrapper.acli.AddSiteUser(ctx, &pb.AddSiteUserRequest{SiteKey: siteKey, Uid: userId, Pw: passwd, Memo: memo})
+	res, err := wrapper.acli.AddSiteUser(ctx, &pb.AddSiteUserRequest{SiteKey: siteKey, Uid: userId, Pw: passwd, Memo: memo, Noauth: noauth})
 	if err != nil {
 		return "", err
 	}
